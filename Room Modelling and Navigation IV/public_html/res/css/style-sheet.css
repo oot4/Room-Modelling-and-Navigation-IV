@@ -1,0 +1,91 @@
+@charset "ISO-8859-1";
+
+/* ===========================================
+*	Author: Ogesoka Tasie - ogesoka@gmail.com
+*  ===========================================
+*/
+html, body {
+	width: 100%;
+	height: 100%;
+}
+
+body {
+	background-color: #f0f0f0;
+	margin: 0px;
+	overflow: hidden;
+	font-family: Monospace;
+	border: none;
+	cursor: default;
+}
+
+lnk:link {
+	color: #0645AD;
+}
+
+/* link: mouseover */
+lnk:hover {
+	color: #3366BB;
+}
+
+/* link: selected */
+lnk:active {
+	color: #0645AD;
+}
+
+/* link: visited */
+lnk:visited {
+	color: #0B0080;
+}
+
+/*
+------------------------------------
+Page Blocker, Instructions and Info 
+------------------------------------
+*/
+#splash {
+	width: 100%;
+	height: 100%;
+	position: absolute;
+	background-color: rgba(0, 0, 0, 0.5);
+}
+
+#pageinfo {
+	width: 200px;
+	height: 160px;
+	right: 0;
+	bottom: 0;
+	padding: 20px;
+	color: #ffffff;
+	text-align: left;
+	position: fixed;
+	background-color: rgba(0, 0, 0, 0.5);
+}
+
+#links {
+	width: 100%;
+	height: 60px;
+	right: 0;
+	top: 0;
+	padding: 20px;
+	font-size: 11px;
+	color: #0645AD;
+	text-align: center;
+	position: fixed;
+}
+
+#info {
+	width: 100%;
+	height: 100%;
+	display: -webkit-box;
+	display: -moz-box;
+	display: box;
+	-webkit-box-orient: horizontal;
+	-moz-box-orient: horizontal;
+	-webkit-box-pack: center;
+	-moz-box-pack: center;
+	-webkit-box-align: center;
+	-moz-box-align: center;
+	color: #e4e4e4;
+	text-align: center;
+	cursor: pointer;
+}

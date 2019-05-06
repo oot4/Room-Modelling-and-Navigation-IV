@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<!--Author: Ogesoka Tasie - ogesoka@gmail.com -->
+
+<html>
+
+    <head>
+        <!-- META -->
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+
+        <!--Style Sheet  -->
+        <link rel="stylesheet" href="res/css/style-sheet.css">
+
+        <!--Scripts  -->
+        <script src="res/scripts/build/three.min.js"></script>
+        <script src="res/scripts/build/Detector.js"></script>
+        <script src="res/scripts/build/jquery-3.1.1.min.js"></script>
+        <script src="res/scripts/build/Sky.js"></script>
+
+        <script src="res/scripts/gui/dat.gui.min.js"></script>
+        <script src="res/scripts/gui/stats.min.js"></script>
+
+        <script src="res/scripts/controls/OrbitControls.js"></script>
+        <script src="res/scripts/controls/TrackballControls.js"></script>
+
+        <!--Link-->
+        <link rel="shortcut icon" href="favicon.ico" />
+
+        <title>Room Modelling and Navigation</title>
+    </head>
+
+    <body>
+        <div id="splash">
+            <div id="info">
+                <span style="font-size:30px">Click Here to Start</span>
+            </div>
+        </div>
+        <div id="WebGLViewport"></div>
+        <script>
+            /*
+             *--------------------------
+             *=====Global Variables=====
+             *--------------------------
+             */
+            var scene, camera, renderer, controls;
+            var statistics;
+            var sky, sun;
+            var count;
+            var clock;
+            var roof;
+            var controlType;
+            var snowflakes0;
+            var snowflakes1;
+            var snowflakes2;
+            var snowflakeCount;
+            var snowflakeSystem0;
+            var snowflakeSystem1;
+            var snowflakeSystem2;
+            var lights = {
+                lamp_point_light_0: new THREE.PointLight(0xFFFFE0, 0),
+                lamp_point_light_1: new THREE.PointLight(0xFFFFE0, 0),
+                ceiling_point_light_0: new THREE.PointLight(0xffffe6, 0),
+                ceiling_spot_light_0: new THREE.SpotLight(0xffffe6, 0),
+                ceiling_point_light_1: new THREE.PointLight(0xffffe6, 0),
+                ceiling_spot_light_1: new THREE.SpotLight(0xffffe6, 0)
+            };
+            var TYPE = {
+                ORBIT: 0,
+                TRACKBALL: 1
+            };
+            var guiParams = {
+                //Control setup
+                switch_to_orbit: function () {
+                    controlType = TYPE.ORBIT;
+                    changeControlType();
+                },
+                switch_to_trackball: function () {
+                    controlType = TYPE.TRACKBALL;
+                    changeControlType();
+                },
+                //Camera View
+                center_view: function () {
+                    centerView();
+                },
+                left_view: function () {
+                    leftView();
+                },
+                right_view: function () {
+                    rightView();
+                },
+                back_view: function () {
+                    backView();
+                },
+                ________________: function () {},
+                //Sun visibility
+                is_sun_visible: !true,
+                set_sun_visibility: function () {
+                    sun.visible = guiParams.is_sun_visible;
+                },
+                is_roof_visible: !false,
+                set_roof_visibility: function () {
+                    roof.traverse(function (roof) {
+                        roof.visible = guiParams.is_roof_visible;
+                    });
+                },
+                time_of_day: 1
+            };
+            //=============
+            //Load Textures
+            //=============
+            var textures = {
+                ground_color: 'res/assets/images/color/ground-texture_COLOR.jpg',
+                ground_normal: 'res/assets/images/normal/ground-texture_NRM.jpg',
+                ground_aomap: 'res/assets/images/aomap/ground-texture_OCC.jpg',
+                concrete_color: 'res/assets/images/color/concrete-texture_COLOR.jpg',
+                concrete_normal: 'res/assets/images/normal/concrete-texture_NRM.jpg',
+                concrete_aomap: 'res/assets/images/aomap/concrete-texture_OCC.jpg',
+                brick_color: 'res/assets/images/color/brick-texture_COLOR.jpg',
+                brick_normal: 'res/assets/images/normal/brick-texture_NRM.jpg',
+                brick_aomap: 'res/assets/images/aomap/brick-texture_OCC.jpg',
+                plastic_color: 'res/assets/images/color/plastic-texture_COLOR.jpg',
+                plastic_normal: 'res/assets/images/normal/plastic-texture_NRM.jpg',
+                plastic_aomap: 'res/assets/images/aomap/plastic-texture_OCC.jpg',
+                glass_normal: 'res/assets/images/normal/glass-texture_NRM.jpg',
+                doorframe_color: 'res/assets/images/color/doorframe-texture_COLOR.jpg',
+                doorframe_normal: 'res/assets/images/normal/doorframe-texture_NRM.jpg',
+                doorframe_aomap: 'res/assets/images/aomap/doorframe-texture_OCC.jpg',
+                indoorframe_color: 'res/assets/images/color/indoor-floor-texture_COLOR.jpg',
+                indoorframe_normal: 'res/assets/images/normal/indoor-floor-texture_NRM.jpg',
+                indoorframe_aomap: 'res/assets/images/aomap/indoor-floor-texture_OCC.jpg',
+                walls_color: 'res/assets/images/color/wall-texture_COLOR.jpg',
+                walls_normal: 'res/assets/images/normal/wall-texture_NRM.jpg',
+                walls_aomap: 'res/assets/images/aomap/wall-texture_OCC.jpg'
+            };
+            //============
+            //Load Objects
+            //============
+            var objects = {
+                table_mesh: 'res/assets/json/coffee-table.json',
+                sofa_mesh_0: 'res/assets/json/sofa-0.json',
+                sofa_mesh_1: 'res/assets/json/sofa-1.json',
+                sofa_mesh_2: 'res/assets/json/sofa-2.json',
+                tv_mesh: 'res/assets/json/tv.json',
+                carpet_mesh: 'res/assets/json/carpet.json',
+                door_mesh_0: 'res/assets/json/door.json',
+                door_mesh_1: 'res/assets/json/door.json',
+                bookshelf_mesh_0: 'res/assets/json/bookshelf-0.json',
+                bookshelf_mesh_1: 'res/assets/json/bookshelf-1.json',
+                bookshelf_mesh_2: 'res/assets/json/bookshelf-2.json',
+                cabinet_mesh: 'res/assets/json/cabinet.json',
+                roof_light_0: 'res/assets/json/roof-light-0.json',
+                roof_light_1: 'res/assets/json/roof-light-1.json'
+            };
+            /*
+             *-------------------
+             *=====Functions=====
+             *-------------------
+             */
+            //=====================
+            //Initializer functions
+            //=====================
+            /*Set variables*/
+            function setVariables() {
+                count = 0;
+                clock = new THREE.Clock();
+                controlType = TYPE.ORBIT;
+                roof = new THREE.Object3D();
+                snowflakes0 = new THREE.Geometry;
+                snowflakes1 = new THREE.Geometry;
+                snowflakes2 = new THREE.Geometry;
+                loadAssets();
+            }
+            /*Load manager*/
+            function loadAssets() {
+                var asset_manager = {
+                    splash: document.getElementById('splash'),
+                    info: document.getElementById('info'),
+                    info_html: document.getElementById('info').innerHTML,
+                    asset_worker: new THREE.LoadingManager()
+                };
+                //progress
+                function load() {
+                    count++;
+                    if (count === Object.keys(textures).length + Object.keys(objects).length) {
+                        asset_manager.info.innerHTML = asset_manager.info_html;
+                        initScene();
+                    }
+                }
+                //info listener
+                asset_manager.info.addEventListener('click', function (event) {
+                    asset_manager.info.style.display = 'none';
+                    asset_manager.splash.style.display = 'none';
+                });
+                //asset loader
+                asset_manager.asset_worker.onProgress = function (target, progress, goal) {
+                    if (progress !== goal) {
+                        var msg = 'Loading: ' + Math.round(progress / goal * 100, 2) + '%';
+                        asset_manager.info.innerHTML = '<span style="font-size:30px">' + msg + '</span>';
+                    }
+                };
+                //load texture data
+                Object.keys(textures).forEach(function (t) {
+                    var textureLoader = new THREE.TextureLoader(asset_manager.asset_worker);
+                    textureLoader.crossOrigin = 'anonymous';
+                    textureLoader.load(textures[t], function (texture) {
+                        texture.texture = texture;
+                        texture.anisotropy = 4;
+                        texture.needsUpdate = true;
+                        textures[t] = texture;
+                        load();
+                    });
+                });
+                //load object data
+                Object.keys(objects).forEach(function (o) {
+                    var objLoader = new THREE.JSONLoader(asset_manager.asset_worker);
+                    objLoader.crossOrigin = 'anonymous';
+                    objLoader.load(objects[o], function (geometry, materials) {
+                        var obj = new THREE.Mesh(geometry, materials);
+                        obj.castShadow = true;
+                        obj.recieveShadow = true;
+                        obj.position.y = 300;
+                        obj.scale.set(100, 100, 100);
+                        objects[o] = obj;
+                        load();
+                    });
+                });
+            }
+            /*Initial scene*/
+            function initScene() {
+                //renderer
+                if (Detector.webgl) {
+                    renderer = new THREE.WebGLRenderer({
+                        antialias: true
+                    });
+                } else {
+                    renderer = new THREE.CanvasRenderer();
+                }
+                renderer.setPixelRatio(window.devicePixelRatio);
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.shadowMap.enabled = true;
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                renderer.toneMapping = THREE.Uncharted2ToneMapping;
+                //container
+                var container = document.getElementById("WebGLViewport");
+                container.appendChild(renderer.domElement);
+                //scene
+                scene = new THREE.Scene();
+                scene.fog = new THREE.Fog(0xbacddb, 200, 2500);
+                //camera
+                camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 10000);
+                scene.add(camera);
+                centerView();
+                //ambient lighting
+                var ambLight = new THREE.AmbientLight(0xffffff, 0.1);
+                scene.add(ambLight);
+                //initialize controls
+                controlType = TYPE.ORBIT;
+                changeControlType();
+                //statistical tracker
+                statistics = new Stats();
+                container.appendChild(statistics.domElement);
+                //build scene        
+                buildAll();
+                //GUI
+                var gui = new dat.GUI();
+                gui.width = 400;
+                gui.close();
+                //GUI parameters
+                gui.add(guiParams, "switch_to_orbit");
+                gui.add(guiParams, "switch_to_trackball");
+                gui.add(guiParams, "________________");
+                gui.add(guiParams, "center_view");
+                gui.add(guiParams, "back_view");
+                gui.add(guiParams, "left_view");
+                gui.add(guiParams, "right_view");
+                gui.add(guiParams, "________________");
+                gui.add(guiParams, "time_of_day", 0, 1);
+                gui.add(guiParams, "________________");
+                gui.add(guiParams, "is_sun_visible").onChange(guiParams.set_sun_visibility);
+                gui.add(guiParams, "is_roof_visible").onChange(guiParams.set_roof_visibility);
+                //animate
+                animateScene();
+            }
+            //================
+            //Camera Functions
+            //================
+            /*Center view*/
+            function centerView() {
+                var center = new THREE.Vector3(0, 0, 0);
+                camera.position.x = 700;
+                camera.position.z = 700;
+                camera.position.y = 450;
+                camera.lookAt(center);
+                if (controlType === TYPE.TRACKBALL) {
+                    changeControlType();
+                }
+            }
+            /*Left view*/
+            function leftView() {
+                var center = new THREE.Vector3(0, 0, 0);
+                camera.position.x = -700;
+                camera.position.z = 700;
+                camera.position.y = 450;
+                camera.lookAt(center);
+                if (controlType === TYPE.TRACKBALL) {
+                    changeControlType();
+                }
+            }
+            /*Right view*/
+            function rightView() {
+                var center = new THREE.Vector3(0, 0, 0);
+                camera.position.x = 700;
+                camera.position.z = -700;
+                camera.position.y = 500;
+                camera.lookAt(center);
+                if (controlType === TYPE.TRACKBALL) {
+                    changeControlType();
+                }
+            }
+            /*Back view*/
+            function backView() {
+                var center = new THREE.Vector3(0, 0, 0);
+                camera.position.x = -700;
+                camera.position.z = -700;
+                camera.position.y = 450;
+                camera.lookAt(center);
+                if (controlType === TYPE.TRACKBALL) {
+                    changeControlType();
+                }
+            }
+            /*Refractive camera 
+             //=================
+             //Control functions
+             //=================
+             /*Orbit*/
+            function activateOrbitControls() {
+                controls = new THREE.OrbitControls(camera, renderer.domElement);
+                //orbit control properties
+                controls.damping = 0.2;
+            }
+            /*Trackball*/
+            function activateTrackballControls() {
+                controls = new THREE.TrackballControls(camera, renderer.domElement);
+                //trackball control properties
+                controls.rotateSpeed = 2.0;
+                controls.zoomSpeed = 2.0;
+                controls.panSpeed = 2.0;
+                controls.staticMoving = true;
+            }
+            /*Controls switch*/
+            function changeControlType() {
+                var prevCamera = camera;
+                //preserve camera position data, refresh camera
+                camera = new THREE.PerspectiveCamera(70, window.innerWidth /
+                        window.innerHeight, 1, 10000);
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                camera.position.copy(prevCamera.position);
+                camera.rotation.copy(prevCamera.rotation);
+                //switch options
+                switch (controlType) {
+                    case TYPE.ORBIT:
+                        activateOrbitControls();
+                        break;
+                    case TYPE.TRACKBALL:
+                        activateTrackballControls();
+                        break;
+                    default:
+                        activateOrbitControls();
+                }
+            }
+            //================
+            //Window functions
+            //================
+            /*Resize window*/
+            function onWindowResize() {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+            //==============
+            //Build functions
+            //==============
+            /*Scene environment*/
+            function buildEnvironment() {
+                var environment = new THREE.Object3D();
+                //sky
+                createSky();
+                //snow
+                createSnow(2000);
+                //lights
+                environment.add(createLightHS(1450, 1400, 1350, 0.20));
+                environment.add(createLightHS(1400, 1400, 1400, 0.30));
+                environment.add(createLightHS(-1400, 1400, -1400, 0.10));
+                environment.add(createLightDir(1400, 1400, -1400, 0.15));
+                environment.add(createLightDir(-1400, 1400, 0, 0.050));
+                environment.add(createLightDir(1400, 1400, 0, 0.045));
+                environment.add(createLightDir(0, 1400, 1400, 0.040));
+                //ground tiles
+                environment.add(createHDBox(1750, 50, 1750, 0, -33, 0, textures.ground_color, textures.ground_normal, textures.ground_aomap));
+                //tree seed
+                for (var x = 1; x < 6; x++) {
+                    for (var z = 1; z < 6; z++) {
+                        var radius = (Math.random() * 300) + 575;
+                        var theta = Math.random() * 360;
+                        var posX = radius * Math.sin(theta);
+                        var posZ = radius * Math.cos(theta);
+                        var tree = createTree(posX, posZ);
+                        environment.add(tree);
+                    }
+                }
+                //add to scene
+                scene.add(environment);
+            }
+            /*windows and doors*/
+            function buildWindowsAndDoors() {
+                var windows = new THREE.Object3D();
+                var doors = new THREE.Object3D();
+                //window frames
+                windows.add(createHDBox(200, 5, 25, 110, 150, 345, textures.plastic_color, textures.plastic_normal, textures.plastic_aomap));
+                windows.add(createHDBox(200, 5, 25, 110, 50, 345, textures.plastic_color, textures.plastic_normal, textures.plastic_aomap));
+                windows.add(createHDBox(270, 5, 25, 75, 150, -445, textures.plastic_color, textures.plastic_normal, textures.plastic_aomap));
+                windows.add(createHDBox(270, 5, 25, 75, 50, -445, textures.plastic_color, textures.plastic_normal, textures.plastic_aomap));
+                windows.add(createHDBox(250, 5, 25, -140, 150, 345, textures.plastic_color, textures.plastic_normal, textures.plastic_aomap));
+                windows.add(createHDBox(250, 5, 25, -140, 50, 345, textures.plastic_color, textures.plastic_normal, textures.plastic_aomap));
+                var sideframe1 = createHDBox(120, 5, 25, 25, 100, 345, textures.plastic_color, textures.plastic_normal, textures.plastic_aomap);
+                sideframe1.rotateZ(-Math.PI / 2);
+                var sideframe2 = createHDBox(120, 5, 25, 200, 100, 345, textures.plastic_color, textures.plastic_normal, textures.plastic_aomap);
+                sideframe2.rotateZ(-Math.PI / 2);
+                var sideframe3 = createHDBox(120, 5, 25, -25, 100, 345, textures.plastic_color, textures.plastic_normal, textures.plastic_aomap);
+                sideframe3.rotateZ(-Math.PI / 2);
+                var sideframe4 = createHDBox(120, 5, 25, -250, 100, 345, textures.plastic_color, textures.plastic_normal, textures.plastic_aomap);
+                sideframe4.rotateZ(-Math.PI / 2);
+                var sideframe5 = createHDBox(120, 5, 25, 200, 100, -445, textures.plastic_color, textures.plastic_normal, textures.plastic_aomap);
+                sideframe5.rotateZ(-Math.PI / 2);
+                var sideframe6 = createHDBox(120, 5, 25, -50, 100, -445, textures.plastic_color, textures.plastic_normal, textures.plastic_aomap);
+                sideframe6.rotateZ(-Math.PI / 2);
+                //door frames
+                var doorframe0 = createHDBox(165, 5, 25, -100, 80, -445, textures.doorframe_color, textures.doorframe_normal, textures.doorframe_aomap);
+                doorframe0.rotateZ(-Math.PI / 2);
+                var doorframe1 = createHDBox(165, 5, 25, -200, 80, -445, textures.doorframe_color, textures.doorframe_normal, textures.doorframe_aomap);
+                doorframe1.rotateZ(-Math.PI / 2);
+                var doorframe2 = createHDBox(120, 5, 25, -150, 150, -445, textures.doorframe_color, textures.doorframe_normal, textures.doorframe_aomap);
+                var doorframe3 = createHDBox(165, 5, 25, -245, 80, 50, textures.doorframe_color, textures.doorframe_normal, textures.doorframe_aomap);
+                doorframe3.rotateZ(-Math.PI / 2);
+                doorframe3.rotateX(-Math.PI / 2);
+                var doorframe4 = createHDBox(165, 5, 25, -245, 80, -50, textures.doorframe_color, textures.doorframe_normal, textures.doorframe_aomap);
+                doorframe4.rotateZ(-Math.PI / 2);
+                doorframe4.rotateX(-Math.PI / 2);
+                var doorframe5 = createHDBox(120, 5, 25, -245, 150, 0, textures.doorframe_color, textures.doorframe_normal, textures.doorframe_aomap);
+                doorframe5.rotateY(-Math.PI / 2);
+                //window glass
+                var glass0 = createTransparentBox(200, 5, 100, 110, 100, 335, textures.glass_normal);
+                glass0.rotateX(-Math.PI / 2);
+                var glass1 = createTransparentBox(250, 5, 100, -140, 100, 335, textures.glass_normal);
+                glass1.rotateX(-Math.PI / 2);
+                var glass2 = createTransparentBox(270, 5, 100, 75, 100, -435, textures.glass_normal);
+                glass2.rotateX(-Math.PI / 2);
+                ////doors
+                //add
+                windows.add(sideframe1);
+                windows.add(sideframe2);
+                windows.add(sideframe3);
+                windows.add(sideframe4);
+                windows.add(sideframe5);
+                windows.add(sideframe6);
+                windows.add(glass0);
+                windows.add(glass1);
+                windows.add(glass2);
+                doors.add(doorframe0);
+                doors.add(doorframe1);
+                doors.add(doorframe2);
+                doors.add(doorframe3);
+                doors.add(doorframe4);
+                doors.add(doorframe5);
+                windows.translateY(-10);
+                doors.translateY(-10);
+                //rotation
+//                windows.rotateY(Math.PI / 1.5);
+                scene.add(windows);
+                scene.add(doors);
+            }
+            /*Framework*/
+            function buildFrame() {
+                var frame = new THREE.Object3D();
+                //floor
+                frame.add(createHDBox(500, 5, 400, 0, 0, -250, textures.concrete_color, textures.concrete_normal, textures.concrete_aomap));
+                frame.add(createHDBox(500, 5, 200, 0, 0, 50, textures.concrete_color, textures.concrete_normal, textures.concrete_aomap));
+                frame.add(createHDBox(500, 5, 200, 0, 0, 250, textures.concrete_color, textures.concrete_normal, textures.concrete_aomap));
+                frame.add(createHDBox(100, 5, 200, -300, 0, 250, textures.concrete_color, textures.concrete_normal, textures.concrete_aomap));
+                //z+ wall
+                var wallzp0 = createHDBox(600, 5, 50, -50, 175, 350, textures.brick_color, textures.brick_normal, textures.brick_aomap);
+                wallzp0.rotateX(-Math.PI / 2);
+                var wallzp1 = createHDBox(600, 5, 50, -50, 25, 350, textures.brick_color, textures.brick_normal, textures.brick_aomap);
+                wallzp1.rotateX(-Math.PI / 2);
+                var wallzp2 = createHDBox(100, 5, 100, -300, 100, 350, textures.brick_color, textures.brick_normal, textures.brick_aomap);
+                wallzp2.rotateX(-Math.PI / 2);
+                var wallzp3 = createHDBox(50, 5, 100, 225, 100, 350, textures.brick_color, textures.brick_normal, textures.brick_aomap);
+                wallzp3.rotateX(-Math.PI / 2);
+                var wallzp4 = createHDBox(50, 5, 100, 0, 100, 350, textures.brick_color, textures.brick_normal, textures.brick_aomap);
+                wallzp4.rotateX(-Math.PI / 2);
+                //z- wall
+                var wallzn0 = createHDBox(500, 5, 50, 0, 175, -450, textures.brick_color, textures.brick_normal, textures.brick_aomap);
+                wallzn0.rotateX(-Math.PI / 2);
+                var wallzn1 = createHDBox(350, 5, 50, 75, 25, -450, textures.brick_color, textures.brick_normal, textures.brick_aomap);
+                wallzn1.rotateX(-Math.PI / 2);
+                var wallzn2 = createHDBox(50, 5, 150, -225, 75, -450, textures.brick_color, textures.brick_normal, textures.brick_aomap);
+                wallzn2.rotateX(-Math.PI / 2);
+                var wallzn3 = createHDBox(50, 5, 100, 225, 100, -450, textures.brick_color, textures.brick_normal, textures.brick_aomap);
+                wallzn3.rotateX(-Math.PI / 2);
+                var wallzn4 = createHDBox(50, 5, 100, -75, 100, -450, textures.brick_color, textures.brick_normal, textures.brick_aomap);
+                wallzn4.rotateX(-Math.PI / 2);
+                //x- wall
+                var wallxn0 = createHDBox(400, 5, 200, -250, 100, -250, textures.brick_color, textures.brick_normal, textures.brick_aomap);
+                wallxn0.rotateX(-Math.PI / 2);
+                wallxn0.rotateZ(-Math.PI / 2);
+                var wallxn1 = createHDBox(100, 5, 200, -250, 100, 100, textures.brick_color, textures.brick_normal, textures.brick_aomap);
+                wallxn1.rotateX(-Math.PI / 2);
+                wallxn1.rotateZ(-Math.PI / 2);
+                var wallxn2 = createHDBox(100, 5, 50, -250, 175, 0, textures.brick_color, textures.brick_normal, textures.brick_aomap);
+                wallxn2.rotateX(-Math.PI / 2);
+                wallxn2.rotateZ(-Math.PI / 2);
+                var wallxn3 = createHDBox(100, 5, 200, -300, 100, 150, textures.brick_color, textures.brick_normal, textures.brick_aomap);
+                wallxn3.rotateX(-Math.PI / 2);
+                var wallxn4 = createHDBox(200, 5, 200, -350, 100, 250, textures.brick_color, textures.brick_normal, textures.brick_aomap);
+                wallxn4.rotateX(-Math.PI / 2);
+                wallxn4.rotateZ(-Math.PI / 2);
+                //x+ wall
+                var wallxp0 = createHDBox(800, 5, 200, 250, 100, -50, textures.brick_color, textures.brick_normal, textures.brick_aomap);
+                wallxp0.rotateX(-Math.PI / 2);
+                wallxp0.rotateZ(-Math.PI / 2);
+                //add all
+                frame.add(wallzp0);
+                frame.add(wallzp1);
+                frame.add(wallzp2);
+                frame.add(wallzp3);
+                frame.add(wallzp4);
+                frame.add(wallzn0);
+                frame.add(wallzn1);
+                frame.add(wallzn2);
+                frame.add(wallzn3);
+                frame.add(wallzn4);
+                frame.add(wallxn0);
+                frame.add(wallxn1);
+                frame.add(wallxn2);
+                frame.add(wallxn3);
+                frame.add(wallxn4);
+                frame.add(wallxp0);
+                frame.translateY(-10);
+                //rotate to sun
+//                frame.rotateY(Math.PI / 1.5);
+//              //add roof
+                buildRoofFrame();
+                //add frame
+                scene.add(frame);
+            }
+            function buildIndoorFrame() {
+                var indoorframe = new THREE.Object3D();
+                //floor
+                indoorframe.add(createHDBox(500, 5, 400, 0, 5, -250, textures.indoorframe_color, textures.indoorframe_normal, textures.indoorframe_aomap));
+                indoorframe.add(createHDBox(500, 5, 200, 0, 5, 50, textures.indoorframe_color, textures.indoorframe_normal, textures.indoorframe_aomap));
+                indoorframe.add(createHDBox(500, 5, 200, 0, 5, 250, textures.indoorframe_color, textures.indoorframe_normal, textures.indoorframe_aomap));
+                indoorframe.add(createHDBox(100, 5, 200, -300, 5, 250, textures.indoorframe_color, textures.indoorframe_normal, textures.indoorframe_aomap));
+                // z+ wall
+                var wallzp0 = createHDBox(600, 5, 50, -50, 175, 330, textures.walls_color, textures.walls_normal, textures.walls_aomap);
+                wallzp0.rotateX(-Math.PI / 2);
+                var wallzp1 = createHDBox(600, 5, 50, -50, 25, 330, textures.walls_color, textures.walls_normal, textures.walls_aomap);
+                wallzp1.rotateX(-Math.PI / 2);
+                var wallzp2 = createHDBox(100, 5, 100, -300, 100, 330, textures.walls_color, textures.walls_normal, textures.walls_aomap);
+                wallzp2.rotateX(-Math.PI / 2);
+                var wallzp3 = createHDBox(50, 5, 100, 225, 100, 330, textures.walls_color, textures.walls_normal, textures.walls_aomap);
+                wallzp3.rotateX(-Math.PI / 2);
+                var wallzp4 = createHDBox(50, 5, 100, 0, 100, 330, textures.walls_color, textures.walls_normal, textures.walls_aomap);
+                wallzp4.rotateX(-Math.PI / 2);
+                //z- wall
+                var wallzn0 = createHDBox(500, 5, 50, 0, 175, -430, textures.walls_color, textures.walls_normal, textures.walls_aomap);
+                wallzn0.rotateX(-Math.PI / 2);
+                var wallzn1 = createHDBox(350, 5, 50, 75, 25, -430, textures.walls_color, textures.walls_normal, textures.walls_aomap);
+                wallzn1.rotateX(-Math.PI / 2);
+                var wallzn2 = createHDBox(50, 5, 150, -225, 75, -430, textures.walls_color, textures.walls_normal, textures.walls_aomap);
+                wallzn2.rotateX(-Math.PI / 2);
+                var wallzn3 = createHDBox(50, 5, 100, 225, 100, -430, textures.walls_color, textures.walls_normal, textures.walls_aomap);
+                wallzn3.rotateX(-Math.PI / 2);
+                var wallzn4 = createHDBox(50, 5, 100, -75, 100, -430, textures.walls_color, textures.walls_normal, textures.walls_aomap);
+                wallzn4.rotateX(-Math.PI / 2);
+                //x- wall
+                var wallxn0 = createHDBox(400, 5, 200, -230, 100, -250, textures.walls_color, textures.walls_normal, textures.walls_aomap);
+                wallxn0.rotateX(-Math.PI / 2);
+                wallxn0.rotateZ(-Math.PI / 2);
+                var wallxn1 = createHDBox(123, 5, 200, -230, 100, 110, textures.walls_color, textures.walls_normal, textures.walls_aomap);
+                wallxn1.rotateX(-Math.PI / 2);
+                wallxn1.rotateZ(-Math.PI / 2);
+                var wallxn2 = createHDBox(100, 5, 50, -230, 175, 0, textures.walls_color, textures.walls_normal, textures.walls_aomap);
+                wallxn2.rotateX(-Math.PI / 2);
+                wallxn2.rotateZ(-Math.PI / 2);
+                var wallxn3 = createHDBox(120, 5, 200, -288, 100, 170, textures.walls_color, textures.walls_normal, textures.walls_aomap);
+                wallxn3.rotateX(-Math.PI / 2);
+                var wallxn4 = createHDBox(200, 5, 200, -320, 100, 250, textures.walls_color, textures.walls_normal, textures.walls_aomap);
+                wallxn4.rotateX(-Math.PI / 2);
+                wallxn4.rotateZ(-Math.PI / 2);
+                //x+ wall
+                var wallxp0 = createHDBox(800, 5, 200, 230, 100, -50, textures.walls_color, textures.walls_normal, textures.walls_aomap);
+                wallxp0.rotateX(-Math.PI / 2);
+                wallxp0.rotateZ(-Math.PI / 2);
+                //add all
+                indoorframe.add(wallzp0);
+                indoorframe.add(wallzp1);
+                indoorframe.add(wallzp2);
+                indoorframe.add(wallzp3);
+                indoorframe.add(wallzp4);
+                indoorframe.add(wallzn0);
+                indoorframe.add(wallzn1);
+                indoorframe.add(wallzn2);
+                indoorframe.add(wallzn3);
+                indoorframe.add(wallzn4);
+                indoorframe.add(wallxn0);
+                indoorframe.add(wallxn1);
+                indoorframe.add(wallxn2);
+                indoorframe.add(wallxn3);
+                indoorframe.add(wallxn4);
+                indoorframe.add(wallxp0);
+                indoorframe.translateY(-10);
+//                indoorframe.rotateY(Math.PI / 1.5);
+                scene.add(indoorframe);
+            }
+            function buildWallSkirts() {
+                var skirts = new THREE.Object3D();
+                // z+ wall
+                var wallzp0 = createHDBox(600, 10, 50, -50, 175, 360, textures.walls_color, textures.walls_normal, textures.walls_aomap);
+                wallzp0.rotateX(-Math.PI / 2);
+                var wallzp1 = createHDBox(600, 10, 50, -50, 25, 360, textures.walls_color, textures.walls_normal, textures.walls_aomap);
+                wallzp1.rotateX(-Math.PI / 2);
+                //z- wall
+                var wallzn0 = createHDBox(500, 10, 50, 0, 175, -460, textures.walls_color, textures.walls_normal, textures.walls_aomap);
+                wallzn0.rotateX(-Math.PI / 2);
+                var wallzn1 = createHDBox(350, 10, 50, 75, 25, -460, textures.walls_color, textures.walls_normal, textures.walls_aomap);
+                wallzn1.rotateX(-Math.PI / 2);
+                var wallzn2 = createHDBox(50, 10, 50, -225, 25, -460, textures.walls_color, textures.walls_normal, textures.walls_aomap);
+                wallzn2.rotateX(-Math.PI / 2);
+                //x- wall
+                var wallxn0 = createHDBox(600, 10, 50, -260, 175, -150, textures.walls_color, textures.walls_normal, textures.walls_aomap);
+                wallxn0.rotateX(-Math.PI / 2);
+                wallxn0.rotateZ(-Math.PI / 2);
+                var wallxn1 = createHDBox(400, 10, 50, -260, 25, -250, textures.walls_color, textures.walls_normal, textures.walls_aomap);
+                wallxn1.rotateX(-Math.PI / 2);
+                wallxn1.rotateZ(-Math.PI / 2);
+                var wallxn2 = createHDBox(100, 10, 50, -260, 25, 100, textures.walls_color, textures.walls_normal, textures.walls_aomap);
+                wallxn2.rotateX(-Math.PI / 2);
+                wallxn2.rotateZ(-Math.PI / 2);
+                var wallxn3 = createHDBox(120, 10, 50, -288, 175, 145, textures.walls_color, textures.walls_normal, textures.walls_aomap);
+                wallxn3.rotateX(-Math.PI / 2);
+                var wallxn4 = createHDBox(120, 10, 50, -288, 25, 145, textures.walls_color, textures.walls_normal, textures.walls_aomap);
+                wallxn4.rotateX(-Math.PI / 2);
+                var wallxn5 = createHDBox(200, 10, 50, -355, 175, 250, textures.walls_color, textures.walls_normal, textures.walls_aomap);
+                wallxn5.rotateX(-Math.PI / 2);
+                wallxn5.rotateZ(-Math.PI / 2);
+                var wallxn6 = createHDBox(200, 10, 50, -355, 25, 250, textures.walls_color, textures.walls_normal, textures.walls_aomap);
+                wallxn6.rotateX(-Math.PI / 2);
+                wallxn6.rotateZ(-Math.PI / 2);
+                //x+ wall
+                var wallxp0 = createHDBox(800, 10, 50, 260, 175, -50, textures.walls_color, textures.walls_normal, textures.walls_aomap);
+                wallxp0.rotateX(-Math.PI / 2);
+                wallxp0.rotateZ(-Math.PI / 2);
+                var wallxp1 = createHDBox(800, 10, 50, 260, 25, -50, textures.walls_color, textures.walls_normal, textures.walls_aomap);
+                wallxp1.rotateX(-Math.PI / 2);
+                wallxp1.rotateZ(-Math.PI / 2);
+                //add all
+                skirts.add(wallzp0);
+                skirts.add(wallzp1);
+                skirts.add(wallzn0);
+                skirts.add(wallzn1);
+                skirts.add(wallzn2);
+                skirts.add(wallxn0);
+                skirts.add(wallxn1);
+                skirts.add(wallxn2);
+                skirts.add(wallxn3);
+                skirts.add(wallxn4);
+                skirts.add(wallxn5);
+                skirts.add(wallxn6);
+                skirts.add(wallxp0);
+                skirts.add(wallxp1);
+                skirts.translateY(-10);
+//                indoorframe.rotateY(Math.PI / 1.5);
+                scene.add(skirts);
+            }
+            /*Build roof*/
+            function buildRoofFrame() {
+                //roof frame
+                roof.add(createHDBox(510, 5, 400, 0, 200, -250, textures.concrete_color, textures.concrete_normal, textures.concrete_aomap));
+                roof.add(createHDBox(510, 5, 200, 0, 200, 50, textures.concrete_color, textures.concrete_normal, textures.concrete_aomap));
+                roof.add(createHDBox(510, 5, 210, 0, 200, 255, textures.concrete_color, textures.concrete_normal, textures.concrete_aomap));
+                roof.add(createHDBox(100, 5, 210, -305, 200, 255, textures.concrete_color, textures.concrete_normal, textures.concrete_aomap));
+                roof.translateY(-10);
+                //rotate to sun
+//                roof.rotateY(Math.PI / 1.5);
+                scene.add(roof);
+            }
+            /*Furniture*/
+            function buildFurniture() {
+                //carpet       
+                objects.carpet_mesh.position.y = -2;
+                objects.carpet_mesh.position.z = -250;
+                //doors
+                objects.door_mesh_0.scale.set(110, 70, 50);
+                objects.door_mesh_0.rotateY(-Math.PI / 2);
+                objects.door_mesh_0.position.y = 70;
+                objects.door_mesh_0.position.x = -230;
+                objects.door_mesh_0.position.z = -31.7;
+                objects.door_mesh_1.scale.set(110, 70, 50);
+                objects.door_mesh_1.rotateY(-Math.PI);
+                objects.door_mesh_1.position.y = 70;
+                objects.door_mesh_1.position.z = -450;
+                objects.door_mesh_1.position.x = -118.3;
+                //bookshelves
+                objects.bookshelf_mesh_0.scale.set(100, 70, 100);
+                objects.bookshelf_mesh_0.rotateY(Math.PI / 2);
+                objects.bookshelf_mesh_0.position.y = 57;
+                objects.bookshelf_mesh_0.position.x = 223;
+                objects.bookshelf_mesh_1.scale.set(70, 60, 100);
+                objects.bookshelf_mesh_1.rotateY(-Math.PI / 2);
+                objects.bookshelf_mesh_1.position.y = 44;
+                objects.bookshelf_mesh_1.position.z = 287;
+                objects.bookshelf_mesh_1.position.x = 0;
+                objects.bookshelf_mesh_2.scale.set(70, 60, 100);
+                objects.bookshelf_mesh_2.rotateY(Math.PI / 2);
+                objects.bookshelf_mesh_2.position.y = 15;
+                objects.bookshelf_mesh_2.position.x = 169;
+                objects.bookshelf_mesh_2.position.z = 100;
+                //cabinet
+                objects.cabinet_mesh.scale.set(100, 100, 90);
+                objects.cabinet_mesh.rotateY(Math.PI);
+                objects.cabinet_mesh.position.y = 15;
+                objects.cabinet_mesh.position.z = 250;
+                objects.cabinet_mesh.position.x = -295;
+                //sofa 1
+                objects.sofa_mesh_0.position.y = 20;
+                objects.sofa_mesh_0.position.z = -50;
+                objects.sofa_mesh_0.rotateY(Math.PI);
+                objects.sofa_mesh_0.rotateY(-Math.PI / 8);
+                //coffee table
+                objects.table_mesh.position.y = 20;
+                objects.table_mesh.position.z = -250;
+                objects.table_mesh.position.x = 190;
+                objects.table_mesh.scale.set(200, 150, 200);
+                objects.table_mesh.rotateY(-Math.PI / 2);
+                //tv
+                objects.tv_mesh.position.y = 100;
+                objects.tv_mesh.position.z = -250;
+                objects.tv_mesh.position.x = 223;
+                objects.tv_mesh.scale.set(200, 200, 200);
+                objects.tv_mesh.rotateY(-Math.PI / 2);
+                //sofa 2        
+                objects.sofa_mesh_2.rotateY(Math.PI / 2);
+                objects.sofa_mesh_2.position.y = 15;
+                objects.sofa_mesh_2.position.x = -187.5;
+                objects.sofa_mesh_2.position.z = -220;
+                //lamp
+                objects.roof_light_0.rotateY(Math.PI / 2);
+                objects.roof_light_0.position.y = 183;
+                objects.roof_light_0.position.z = -250;
+                objects.roof_light_1.rotateY(Math.PI / 2);
+                objects.roof_light_1.position.y = 183;
+                objects.roof_light_1.position.z = 200;
+                //add to scene
+                scene.add(objects.carpet_mesh);
+                scene.add(objects.sofa_mesh_2);
+                scene.add(objects.sofa_mesh_0);
+                scene.add(objects.tv_mesh);
+                scene.add(objects.table_mesh);
+                scene.add(objects.door_mesh_0);
+                scene.add(objects.door_mesh_1);
+                scene.add(objects.bookshelf_mesh_0);
+                scene.add(objects.bookshelf_mesh_1);
+                scene.add(objects.bookshelf_mesh_2);
+                scene.add(objects.cabinet_mesh);
+                scene.add(objects.roof_light_0);
+                scene.add(objects.roof_light_1);
+            }
+            /*Lights*/
+            function buildLightEffects() {
+                //spot lights
+                lights.ceiling_spot_light_0.position.set(0, 183, 200);
+                lights.ceiling_spot_light_0.castShadow = true;
+                lights.ceiling_spot_light_0.distance = 400;
+                lights.ceiling_spot_light_0.angle = Math.PI / 2;
+                lights.ceiling_spot_light_0.decay = 2;
+                lights.ceiling_spot_light_0.target.position.set(0, 0, 200);
+                lights.ceiling_spot_light_1.position.set(0, 183, -250);
+                lights.ceiling_spot_light_1.castShadow = true;
+                lights.ceiling_spot_light_1.distance = 400;
+                lights.ceiling_spot_light_1.angle = Math.PI / 2;
+                lights.ceiling_spot_light_1.decay = 2;
+                lights.ceiling_spot_light_1.target.position.set(0, 0, -250);
+                //pointlights
+                lights.ceiling_point_light_0.position.set(0, 170, 200);
+                lights.ceiling_point_light_0.castShadow = true;
+                lights.ceiling_point_light_0.distance = 500;
+                lights.ceiling_point_light_0.decay = 1.5;
+                lights.ceiling_point_light_1.position.set(0, 170, -250);
+                lights.ceiling_point_light_1.castShadow = true;
+                lights.ceiling_point_light_1.distance = 500;
+                lights.ceiling_point_light_1.decay = 1.5;
+                lights.lamp_point_light_0.position.set(175, 85, -305);
+                lights.lamp_point_light_0.castShadow = true;
+                lights.lamp_point_light_0.distance = 200;
+                lights.lamp_point_light_0.decay = 2;
+                lights.lamp_point_light_1.position.set(-290, 85, 300);
+                lights.lamp_point_light_1.castShadow = true;
+                lights.lamp_point_light_1.distance = 200;
+                lights.lamp_point_light_1.decay = 2;
+                //light helpers
+                helper = new THREE.PointLightHelper(lights.lamp_point_light_1, 1);
+                //add to scene
+                scene.add(lights.ceiling_spot_light_0.target);
+                scene.add(lights.ceiling_spot_light_1.target);
+                scene.add(lights.ceiling_spot_light_0);
+                scene.add(lights.ceiling_spot_light_1);
+                scene.add(lights.ceiling_point_light_0);
+                scene.add(lights.ceiling_point_light_1);
+                scene.add(lights.lamp_point_light_0);
+                scene.add(lights.lamp_point_light_1);
+                scene.add(helper);
+            }
+            /*Master build*/
+            function buildAll() {
+                buildEnvironment();
+                buildFrame();
+                buildWindowsAndDoors();
+                buildIndoorFrame();
+                buildWallSkirts();
+                buildFurniture();
+                buildLightEffects();
+            }
+            //===================
+            //Blueprint functions
+            //===================
+            /*Simple box*/
+            function createBox(lengthX, lengthY, lengthZ, posX, posY, posZ, texture) {
+                var geometry = new THREE.BoxBufferGeometry(lengthX, lengthY, lengthZ);
+                var scale = 0.8;
+                var material = new THREE.MeshStandardMaterial({
+                    //texture mappings
+                    map: texture
+                });
+                //custom normalization
+                var dimH = Math.round(Math.max(lengthX, lengthZ) / lengthY) * 0.1024 * scale;
+                var dimV = Math.round(Math.min(lengthX, lengthZ) / lengthY) * 0.1024 * scale;
+                material.map.wrapS = material.map.wrapT = THREE.RepeatWrapping;
+                material.map.offset.set(0, 0);
+                material.map.repeat.set(dimH, dimV);
+                //generate
+                var box = new THREE.Mesh(geometry, material);
+                //box properties
+                box.receiveShadow = true;
+                box.castShadow = true;
+                box.position.set(posX, posY, posZ);
+                return box;
+            }
+            /*HD box*/
+            function createHDBox(lengthX, lengthY, lengthZ, posX, posY, posZ, color, normal, aomap) {
+                var geometry = new THREE.BoxBufferGeometry(lengthX, lengthY, lengthZ);
+                var scale = 0.8;
+                var material = new THREE.MeshStandardMaterial({
+                    //texture mappings
+                    map: color,
+                    bumpMap: normal,
+                    bumpScale: -3,
+                    aoMap: aomap,
+                    aoMapIntensity: 4
+                });
+                //custom normalization
+                var dimH = Math.round(Math.max(lengthX, lengthZ) / lengthY) * 0.1024 * scale;
+                var dimV = Math.round(Math.min(lengthX, lengthZ) / lengthY) * 0.1024 * scale;
+                material.map.wrapS = material.map.wrapT = THREE.RepeatWrapping;
+                material.map.offset.set(0, 0);
+                material.map.repeat.set(dimH, dimV);
+                material.bumpMap.wrapS = material.bumpMap.wrapT = THREE.RepeatWrapping;
+                material.bumpMap.offset.set(0, 0);
+                material.bumpMap.repeat.set(dimH, dimV);
+                material.aoMap.wrapS = material.aoMap.wrapT = THREE.RepeatWrapping;
+                material.aoMap.offset.set(0, 0);
+                material.aoMap.repeat.set(dimH, dimV);
+                //generate
+                var box = new THREE.Mesh(geometry, material);
+                //box properties
+                box.receiveShadow = true;
+                box.castShadow = true;
+                box.position.set(posX, posY, posZ);
+                return box;
+            }
+            /*Transparency box*/
+            function createTransparentBox(lengthX, lengthY, lengthZ, posX, posY, posZ, normal) {
+                var geometry = new THREE.BoxBufferGeometry(lengthX, lengthY, lengthZ);
+                var scale = 0.8;
+                var material = new THREE.MeshStandardMaterial({
+                    //texture mappings
+                    color: 0xffffff,
+                    bumpMap: normal,
+                    bumpScale: -3,
+                    transparent: true,
+                    opacity: 0.55
+                });
+                //custom normalization
+                var dimH = Math.round(Math.max(lengthX, lengthZ) / lengthY) * 0.1024 * scale;
+                var dimV = Math.round(Math.min(lengthX, lengthZ) / lengthY) * 0.1024 * scale;
+                material.bumpMap.wrapS = material.bumpMap.wrapT = THREE.RepeatWrapping;
+                material.bumpMap.offset.set(0, 0);
+                material.bumpMap.repeat.set(dimH, dimV);
+                //generate
+                var box = new THREE.Mesh(geometry, material);
+                //box properties
+                box.receiveShadow = true;
+                box.castShadow = false;
+                box.position.set(posX, posY, posZ);
+                return box;
+            }
+            /*Simple Tree*/
+            function createTree(posX, posZ) {
+                var treeStumpMaterial = new THREE.MeshLambertMaterial({color: 0x53350A});
+                var treeLeavesMaterial = new THREE.MeshLambertMaterial({color: 0x708d13});
+                var treeMesh = new THREE.Group();
+                //create stump
+                var treeStump = new THREE.Mesh(new THREE.CylinderGeometry(5, 5, 10, 4), treeStumpMaterial);
+                treeStump.position.y = 0;
+                treeStump.castShadow = true;
+                treeStump.receiveShadow = true;
+                treeMesh.add(treeStump);
+                //create tree leaves
+                var treeLeaf0 = new THREE.Mesh(new THREE.CylinderGeometry(0, 25, 60, 7), treeLeavesMaterial);
+                treeLeaf0.position.y = 35;
+                treeLeaf0.castShadow = true;
+                treeLeaf0.receiveShadow = true;
+                treeMesh.add(treeLeaf0);
+                var treeLeaf1 = new THREE.Mesh(new THREE.CylinderGeometry(0, 20, 50, 7), treeLeavesMaterial);
+                treeLeaf1.position.y = 50;
+                treeLeaf1.castShadow = true;
+                treeLeaf1.receiveShadow = true;
+                treeMesh.add(treeLeaf1);
+                var treeLeaf2 = new THREE.Mesh(new THREE.CylinderGeometry(0, 15, 40, 7), treeLeavesMaterial);
+                treeLeaf2.position.y = 65;
+                treeLeaf2.castShadow = true;
+                treeLeaf2.receiveShadow = true;
+                treeMesh.add(treeLeaf2);
+                //variation
+                treeMesh.variation = (Math.random() - 0.5) * .25;
+                treeMesh.scale.x = 2.5 + treeMesh.variation;
+                treeMesh.scale.y = 2.5 + treeMesh.variation;
+                treeMesh.scale.z = 2.5 + treeMesh.variation;
+                treeMesh.position.x = posX + treeMesh.variation;
+                treeMesh.position.z = posZ + treeMesh.variation;
+                treeMesh.rotation.y = Math.random() * Math.PI;
+                return treeMesh;
+            }
+            /*Sky*/
+            function createSky() {
+                sky = new THREE.Sky();
+                //sky material properties
+                sky.scale.setScalar(2000);
+                sky.material.uniforms.mieCoefficient.value = 0.005;
+                //create helper
+                sun = new THREE.Mesh(new THREE.SphereBufferGeometry(50, 32, 16), new THREE.MeshBasicMaterial({
+                    color: 0xffffff
+                }));
+                //other properties
+                sun.position.y = 1400;
+                sun.position.x = 1400;
+                sun.position.z = -1400;
+                sky.material.uniforms.sunPosition.value.copy(sun.position);
+                sun.visible = false;
+                //add to scene
+                scene.add(sky);
+            }
+            /*Snow animation*/
+            function createSnow(particleCount) {
+                snowflakeCount = particleCount;
+                //material
+                var sMaterial = new THREE.PointsMaterial({
+                    color: 0xd3e4ec,
+                    size: 3,
+                    blending: THREE.AdditiveBlending,
+                    depthTest: true,
+                    transparent: true,
+                    opacity: 0.6
+                });
+                //seed outer snow wall
+                for (var i = 0; i < snowflakeCount; i++) {
+                    var radius = (Math.random() * 700) + 575;
+                    var theta = Math.random() * 360;
+                    var px = (radius * Math.sin(theta)) + 1000;
+                    var py = Math.random() * 3000;
+                    var pz = (radius * Math.cos(theta)) + 1000;
+                    var snowflake = new THREE.Vector3(px, py, pz);
+                    //set particle speed
+                    snowflake.velocity = {};
+                    snowflake.velocity.y = -1;
+                    snowflakes0.vertices.push(snowflake);
+                }
+                //mid level snow wall
+                for (var i = 0; i < snowflakeCount; i++) {
+                    var radius = (Math.random() * 300) + 575;
+                    var theta = Math.random() * 360;
+                    var px = (radius * Math.sin(theta)) + 1000;
+                    var py = Math.random() * 3000;
+                    var pz = (radius * Math.cos(theta)) + 1000;
+                    var snowflake = new THREE.Vector3(px, py, pz);
+                    //set particle speed
+                    snowflake.velocity = {};
+                    snowflake.velocity.y = -1.1;
+                    snowflakes1.vertices.push(snowflake);
+                }
+                //inner snow wall
+                for (var i = 0; i < snowflakeCount; i++) {
+                    var px = Math.random() * 2000;
+                    var py = Math.random() * 3000;
+                    var pz = Math.random() * 2000;
+                    var snowflake = new THREE.Vector3(px, py, pz);
+                    //set particle speed
+                    snowflake.velocity = {};
+                    snowflake.velocity.y = -1.1;
+                    snowflakes2.vertices.push(snowflake);
+                }
+                //systems
+                snowflakeSystem0 = new THREE.Points(snowflakes0, sMaterial);
+                snowflakeSystem0.position.y = -10;
+                snowflakeSystem0.position.x = -1000;
+                snowflakeSystem0.position.z = -1000;
+                snowflakeSystem1 = new THREE.Points(snowflakes1, sMaterial);
+                snowflakeSystem1.position.y = -10;
+                snowflakeSystem1.position.x = -1000;
+                snowflakeSystem1.position.z = -1000;
+                snowflakeSystem2 = new THREE.Points(snowflakes2, sMaterial);
+                snowflakeSystem2.position.y = -10;
+                snowflakeSystem2.position.x = -1000;
+                snowflakeSystem2.position.z = -1000;
+                scene.add(snowflakeSystem0);
+                scene.add(snowflakeSystem1);
+                scene.add(snowflakeSystem2);
+            }
+            /*Hemisphere light*/
+            function createLightHS(posX, posY, posZ, strength) {
+                var lightHS = new THREE.HemisphereLight(0xffffff, 0xffffff, strength);
+                //hemisphere light properties
+                lightHS.color.setHSL(0.2, 0.2, 0.2);
+                lightHS.groundColor.setHSL(0.095, 1, 0.75);
+                lightHS.position.set(posX, posY, posZ);
+                return lightHS;
+            }
+            /*Directional lighting*/
+            function createLightDir(posX, posY, posZ, strength) {
+                var lightDir = new THREE.DirectionalLight(0xffffff, strength);
+                //directional light properties
+                lightDir.position.set(posX, posY, posZ);
+                //shadow map
+                lightDir.castShadow = true;
+                lightDir.shadow.camera.near = 100;
+                lightDir.shadow.camera.far = 5000;
+                lightDir.shadow.camera.top = 1200;
+                lightDir.shadow.camera.bottom = -1200;
+                lightDir.shadow.camera.left = -1200;
+                lightDir.shadow.camera.right = 1200;
+                return lightDir;
+            }
+            //================
+            //Particle systems
+            //================
+            function simulateSnow() {
+                var sCount = snowflakeCount;
+                while (sCount--) {
+                    var snowflake0 = snowflakes0.vertices[sCount];
+                    var snowflake1 = snowflakes1.vertices[sCount];
+                    var snowflake2 = snowflakes2.vertices[sCount];
+                    if (snowflake0.y < 0) {
+                        snowflake0.y = 2000;
+                        snowflake0.velocity.y = 0.1;
+                    }
+                    if (snowflake1.y < 0) {
+                        snowflake1.y = 2000;
+                        snowflake1.velocity.y = 0.1;
+                    }
+                    if (snowflake2.y < 210) {
+                        snowflake2.y = 2000;
+                        snowflake2.velocity.y = 0.1;
+                    }
+                    snowflake0.velocity.y -= Math.random() * 0.01;
+                    snowflake0.y += snowflake0.velocity.y;
+                    snowflake1.velocity.y -= Math.random() * 0.01;
+                    snowflake1.y += snowflake1.velocity.y;
+                    snowflake2.velocity.y -= Math.random() * 0.01;
+                    snowflake2.y += snowflake2.velocity.y;
+                }
+                snowflakes0.verticesNeedUpdate = true;
+                snowflakes1.verticesNeedUpdate = true;
+                snowflakes2.verticesNeedUpdate = true;
+            }
+            //==============
+            //Loop functions
+            //==============
+            /*Loop*/
+            function animateScene() {
+                updateScene();
+                renderScene();
+                requestAnimationFrame(animateScene);
+            }
+            /*Rendering and updating*/
+            function renderScene() {
+                renderer.render(scene, camera);
+            }
+            function updateScene() {
+                //system updates        
+                controls.update(clock.getDelta());
+                onWindowResize();
+                statistics.update();
+                //exposure        
+                sky.material.uniforms.luminance.value = 0.9 - (guiParams.time_of_day + 0.001);
+                sky.material.uniforms.rayleigh.value = (guiParams.time_of_day * 1.5) + 0.001;
+                sky.material.uniforms.turbidity.value = (guiParams.time_of_day * 5) + 1;
+                sky.material.uniforms.mieDirectionalG.value = (guiParams.time_of_day * 0.8) + 0.001;
+                sky.material.uniforms.sunPosition.value.copy(sun.position);
+                lights.ceiling_point_light_0.intensity = (1 - guiParams.time_of_day) * 0.4;
+                lights.ceiling_point_light_1.intensity = (1 - guiParams.time_of_day) * 0.4;
+                lights.ceiling_spot_light_0.intensity = (1 - guiParams.time_of_day) * 0.55;
+                lights.ceiling_spot_light_1.intensity = (1 - guiParams.time_of_day) * 0.55;
+                lights.lamp_point_light_0.intensity = (1 - guiParams.time_of_day) * 0.35;
+                lights.lamp_point_light_1.intensity = (1 - guiParams.time_of_day) * 0.35;
+                sun.position.y = (guiParams.time_of_day * 1400) - 300;
+                //snow animation
+                simulateSnow();
+            }
+            setVariables();
+        </script>
+    </body>
+
+</html>

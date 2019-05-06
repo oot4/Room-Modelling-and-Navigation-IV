@@ -1,0 +1,7 @@
+{
+    "name": "Room_Modelling_and_Navigation_IV", "version": "1.0.0", "main": "path/to/main.css", "ignore": [
+        ".jshintrc", "**/*.txt"
+    ], "dependencies": {
+    }, "devDependencies": {
+    }
+}
