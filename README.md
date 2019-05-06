@@ -29,6 +29,7 @@ res/css
 1. style-sheet.css             html style sheet
 --------------------------------------------- 
 res/scripts/
+
 All script libraries used are stored in these folders
 
 ---------------------------------------------
