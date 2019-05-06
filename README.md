@@ -3,11 +3,11 @@ An example of a 3D environment using Javascript and  the 3JS library.
 
 Instructions on creating a temporary server to load the project can be found in the first level folder.
 
-# ReadMe.txt
+contents of ReadMe.txt
 
 
-        Room Modelling and Navigation        
-                    OOT4                     
+#        Room Modelling and Navigation        
+#                    OOT4                     
                     
 ---------------------------------------------
 I. Files and Folder List
