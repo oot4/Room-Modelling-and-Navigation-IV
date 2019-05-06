@@ -7,7 +7,7 @@ contents of ReadMe.txt
 
 
 #        Room Modelling and Navigation        
-#        Ogesoka Tasie                     
+#        OOT4                     
                     
 ---------------------------------------------
 I. Files and Folder List
