@@ -33,8 +33,7 @@ res/scripts/
 All script libraries used are stored in these folders
 
 ---------------------------------------------
-*Notes
----------------------------------------------
+# *Notes
 
 ---------------------------------------------
 II. Compiling and Running
