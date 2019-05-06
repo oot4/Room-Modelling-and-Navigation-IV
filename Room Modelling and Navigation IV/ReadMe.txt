@@ -60,7 +60,7 @@ locations otherwise the application may not work.
 ------------
 Other Notes:
 ------------
-The application cannot run outside an IDE. CORS will prevent qssets from being
+The application cannot run outside an IDE. CORS will prevent assets from being
 initialized and will cause the application to come to a stand still.
 ---------------------------------------------------------------------------
 ###########################################################################
