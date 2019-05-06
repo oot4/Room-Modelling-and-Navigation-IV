@@ -5,22 +5,18 @@ Instructions on creating a temporary server to load the project can be found in 
 
 # ReadMe.txt
 
-
 #############################################
 
         Room Modelling and Navigation        
                     OOT4                     
-#############################################
 ---------------------------------------------
 I. Files and Folder List
 ---------------------------------------------
 public_html
----------------------------------------------
 1. oot4CS23420.html      main html index Files
 2. favicon.ico                  html page icon
 ---------------------------------------------
 res/assets
----------------------------------------------
 1. blender                  blender mesh Files
 2. gimp Files             gimp edited textures
 3. images                final texture outputs
@@ -28,8 +24,7 @@ res/assets
 5. reference images       modelling references
 ---------------------------------------------
 res/css
----------------------------------------------
-1.style-sheet.css             html style sheet
+1. style-sheet.css             html style sheet
 ---------------------------------------------
 res/scripts/
 ---------------------------------------------
@@ -54,7 +49,6 @@ plugin database.
 5. You may be prompted to install Chrome's Netbeans Connector or any other
 plugin, please do so.
 6.If prompeted to install a plugin make sure to follow through step 3 again.
-#############################################
 ---------------------------------------------
 III Included Script Libraries
 ---------------------------------------------
@@ -69,4 +63,3 @@ Other Notes:
 The application cannot run outside an IDE. CORS will prevent assets from being
 initialized and will cause the application to come to a stand still.
 ---------------------------------------------
-#############################################
